@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Workspace {
+  id          String            @id @default(cuid())
+  name        String
+  description String?           // 可选描述
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  ownerId String
+  owner   User                  @relation("UserOwnedWorkspaces", fields: [ownerId], references: [id])
+
+  members WorkspaceMember[]
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        WorkspaceRole @default(MEMBER)
+  createdAt   DateTime      @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([userId, workspaceId]) // 一个用户在一个 workspace 中只出现一次
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedWorkspaces Workspace[]       @relation("UserOwnedWorkspaces")
+  workspaceMembers WorkspaceMember[]
+}
+
+
+
